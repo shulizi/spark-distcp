@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
 import scala.util.Try
+import scala.util.control.Breaks
 
 class FileLister(fileSystem: FileSystem,path: Path) extends Runnable {
   private implicit class ScalaRemoteIterator[T](underlying: RemoteIterator[T]) extends Iterator[T] {
@@ -24,46 +25,44 @@ class FileLister(fileSystem: FileSystem,path: Path) extends Runnable {
   val pathRoot =  Some(SerializableFileStatus(fileSystem.getFileStatus(path)))
   LoggingUtils.log("Info","get file list pathroot: "+pathRoot.toString)
   val threadsWorking = new ConcurrentHashMap[UUID, Boolean]()
-  val processed = new java.util.concurrent.LinkedBlockingQueue[(SerializableFileStatus, Seq[SerializableFileStatus])](pathRoot.map((_, Seq.empty)).toSeq.asJava)
-  val toProcess = new java.util.concurrent.LinkedBlockingDeque[(Path, Seq[SerializableFileStatus])](List((path, pathRoot.toSeq)).asJava)
   val exceptions = new java.util.concurrent.ConcurrentLinkedQueue[Exception]()
+  val fileList = new java.util.concurrent.LinkedBlockingQueue[(SerializableFileStatus, Seq[SerializableFileStatus])](pathRoot.map((_, Seq.empty)).toSeq.asJava)
+  val directoryList = new java.util.concurrent.LinkedBlockingDeque[(Path, Seq[SerializableFileStatus])](List((path, pathRoot.toSeq)).asJava)
 
 
   private val uuid = UUID.randomUUID()
   threadsWorking.put(uuid, true)
 
   def getProcessed(): java.util.concurrent.LinkedBlockingQueue[(SerializableFileStatus, Seq[SerializableFileStatus])] ={
-    processed
+    fileList
   }
   def getToProcess(): java.util.concurrent.LinkedBlockingDeque[(Path, Seq[SerializableFileStatus])] ={
-    toProcess
+    directoryList
   }
 
   override def run(): Unit = {
-    while (threadsWorking.containsValue(true)) {
-      Try(Option(toProcess.pollFirst(50, TimeUnit.MILLISECONDS))).toOption.flatten match {
-        case None =>
-          threadsWorking.put(uuid, false)
-        case Some(p) =>
-          LoggingUtils.log("Debug",s"Thread [$uuid] searching [${p._1}], waiting to process depth [${toProcess.size()}]")
-          threadsWorking.put(uuid, true)
-          try {
-            localfileSystem
-              .listLocatedStatus(p._1)
-              .foreach {
-                case l if l.isSymlink => throw new RuntimeException(s"Link [$l] is not supported")
-                case d if d.isDirectory =>
-
-                  val s = SerializableFileStatus(d)
-                  toProcess.addFirst((d.getPath, p._2 :+ s))
-                  processed.add((s, p._2))
-
-                case f =>
-                  processed.add((SerializableFileStatus(f), p._2))
-              }
-          } catch {
-            case e: Exception => exceptions.add(e)
+    val loop = new Breaks;
+    loop.breakable{
+      while (true) {
+        // while遍历 directoryList ,如果为目录，则追加进directoryList，如果为文件则追加进fileList 最后返回获取的fileList
+        val path = directoryList.pollFirst()
+        if (path == null) {
+          loop.break
+        }
+        try {
+          for (local <- fileSystem.listLocatedStatus(path._1) if !local.isSymlink) {
+            if (local.isDirectory) {
+              val s = SerializableFileStatus(local)
+              directoryList.addFirst((local.getPath, path._2 :+ s))
+              fileList.add((s, path._2))
+            }
+            if (local.isFile) {
+              fileList.add((SerializableFileStatus(local), path._2))
+            }
           }
+        } catch {
+          case e: Exception => {}
+        }
       }
     }
   }
