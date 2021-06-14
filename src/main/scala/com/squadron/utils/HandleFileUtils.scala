@@ -40,14 +40,14 @@ object HandleFileUtils  {
     Await.result(Future.sequence(tasks), Duration.Inf)
     pool.shutdown()
     val toProcess = fileLister.getToProcess()
-    if (!toProcess.isEmpty) throw new RuntimeException("Exception listing files, toProcess queue was not empty")
+    if (!toProcess.isEmpty)  LoggingUtils.log("Error","Error during file listing","Exception listing files, toProcess queue was not empty")
 
 
     if (!exceptions.isEmpty) {
       val collectedExceptions = exceptions.iterator().asScala.toList
       collectedExceptions
         .foreach {
-          e => LoggingUtils.log("Error","Exception during file listing", e)
+          e => LoggingUtils.log("Error","Exception during file listing", e.toString)
         }
       throw collectedExceptions.head
     }

@@ -7,8 +7,6 @@ import com.squadron.objects.SerializableFileStatus
 import org.apache.hadoop.fs.{FileSystem, Path, RemoteIterator}
 
 import scala.collection.JavaConverters._
-import scala.util.matching.Regex
-import scala.util.Try
 import scala.util.control.Breaks
 
 class FileLister(fileSystem: FileSystem,path: Path) extends Runnable {

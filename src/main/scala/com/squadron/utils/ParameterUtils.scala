@@ -6,6 +6,7 @@ object ParameterUtils {
   var numTasks:Int = 2
   var src:String = ""
   var dest:String= ""
+  var ignoreErrors = false
 
   def getNumTasks(): Int ={
     numTasks
@@ -15,6 +16,9 @@ object ParameterUtils {
   }
   def getDestination():String = {
     dest
+  }
+  def getIgnoreErrors():Boolean = {
+    ignoreErrors
   }
 
   def fun_get_next_parameter(parameter_array:Array[String]):Unit={
@@ -55,6 +59,7 @@ object ParameterUtils {
         LoggingUtils.log("Info","get destination to copy: " + dest)
       }else if (parameter == "--ignoreErrors"){
         LoggingUtils.log("Info","get parameter ignoreErrors ")
+        ignoreErrors = true
       }
       fun_get_next_parameter(parameter_array)
     }

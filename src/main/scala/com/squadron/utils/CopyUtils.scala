@@ -53,8 +53,8 @@ object CopyUtils  {
       Try(fs.delete(path, true)) match {
         case Success(true) => s"Path: [$path],delete path,success"
         case Success(false) if !fs.exists(path) => s"Path: [$path],delete path,fail, file not exist"
-        case Success(false) => throw new RuntimeException(s"Failed to delete directory [$path].")
-        case Failure(e) => throw e
+        case Success(false) => LoggingUtils.log("Error","delete file",s"Failed to delete directory [$path].")
+        case Failure(e) => LoggingUtils.log("Error","delete file",e.toString)
       }
     }
   }
@@ -84,7 +84,7 @@ object CopyUtils  {
       result match {
         case Success(v) => v
         case Failure(e) =>
-          throw e
+          LoggingUtils.log("Error",s"Exception whilst creating directory [${definition.destination}]", e.toString)
       }
     }
   }
@@ -99,12 +99,9 @@ object CopyUtils  {
         LoggingUtils.log("Info","fail to copy file " + filecopy)
         filecopy
       case Failure(e) =>
-        throw e
-
-      case Success(_)  =>
-        performCopy(sourceFS, definition.source, destFS, definition.destination, removeExisting = true, taskAttemptID)
-
+        LoggingUtils.log("Error","fail to  get destination file "+definition.destination,e.toString)
       case Success(_) =>
+        performCopy(sourceFS, definition.source, destFS, definition.destination, removeExisting = true, taskAttemptID)
         var filecopy: String = s"Source: [${definition.source.getPath.toUri}], Destination: [${definition.destination}] ,success to copy file"
         filecopy
 
@@ -154,31 +151,10 @@ object CopyUtils  {
         var result: String = s"Source: [${sourceFile.getPath.toUri}], Destination: [${dest}] ,perform copy"
         result
       case Failure(e) =>
-        throw e
+        LoggingUtils.log("Error",s"Failed to copy file [${sourceFile.getPath}] to [$destPath]", e.toString)
     }
 
   }
 
-  private[utils] def filesAreIdentical(f1: SerializableFileStatus, mc1: => Option[FileChecksum], f2: SerializableFileStatus, mc2: => Option[FileChecksum]): Boolean = {
-    if (f1.getLen != f2.getLen) {
-      LoggingUtils.log("Debug",s"Length [${f1.getLen}] of file [${f1.uri}] was not the same as length [${f2.getLen}] of file [${f2.uri}]. Files are not identical.")
-      false
-    }
-    else {
-      val c1 = mc1
-      val c2 = mc2
-      val same = mc1.flatMap(c1 => mc2.map(c1 ==)).getOrElse(true)
-      if (same) {
-        LoggingUtils.log("Debug",s"CRC [$c1] of file [${f1.uri}] was the same as CRC [$c2] of file [${f2.uri}]. Files are identical.")
-        true
-      }
-      else {
-        LoggingUtils.log("Debug",s"CRC [$c1] of file [${f1.uri}] was not the same as CRC [$c2] of file [${f2.uri}]. Files are not identical.")
-        false
-      }
-
-    }
-
-  }
 
 }
