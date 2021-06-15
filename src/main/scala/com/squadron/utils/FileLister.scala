@@ -22,14 +22,13 @@ class FileLister(fileSystem: FileSystem,path: Path) extends Runnable {
   //SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
   val pathRoot =  Some(SerializableFileStatus(fileSystem.getFileStatus(path)))
   LoggingUtils.log("Info","get file list pathroot: "+pathRoot.toString)
-  val threadsWorking = new ConcurrentHashMap[UUID, Boolean]()
+
   val exceptions = new java.util.concurrent.ConcurrentLinkedQueue[Exception]()
   val fileList = new java.util.concurrent.LinkedBlockingQueue[(SerializableFileStatus, Seq[SerializableFileStatus])](pathRoot.map((_, Seq.empty)).toSeq.asJava)
   val directoryList = new java.util.concurrent.LinkedBlockingDeque[(Path, Seq[SerializableFileStatus])](List((path, pathRoot.toSeq)).asJava)
 
 
-  private val uuid = UUID.randomUUID()
-  threadsWorking.put(uuid, true)
+
 
   def getProcessed(): java.util.concurrent.LinkedBlockingQueue[(SerializableFileStatus, Seq[SerializableFileStatus])] ={
     fileList
