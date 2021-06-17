@@ -62,27 +62,24 @@ object SparkDistCP {
 
     val serConfig = new ConfigSerializableDeser(sourceRDD.sparkContext.hadoopConfiguration)
     //    batchAndPartitionFiles(sourceRDD):
-    //    ((9,0),
-    //      CopyDefinitionWithDependencies(
+    //    CopyDefinitionWithDependencies(
     //          SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info.dat,14488255,File)
     //          ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
     //          ,List(
     //             SingleCopyDefinition(
     //                SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
-    //                ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data))))
-    //  ,((9,0),
+    //                ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data)))
     //       CopyDefinitionWithDependencies(
     //           SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info2.dat,14488255,File)
     //           ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
     //           ,List(
     //               SingleCopyDefinition(
     //                  SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
-    //                  ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data))))
-    // ,((7,0),
+    //                  ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data)))
     //      CopyDefinitionWithDependencies(
     //           SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
     //          ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data
-    //          ,List())
+    //          ,List()
     LoggingUtils.log("Info","do copy START ")
     var distcpresult = sourceRDD
       .mapPartitions {
