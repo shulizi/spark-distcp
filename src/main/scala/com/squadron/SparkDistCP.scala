@@ -39,11 +39,69 @@ object SparkDistCP {
     val qualifiedDestinationPath = PathUtils.pathToQualifiedPath(sparkSession.sparkContext.hadoopConfiguration, destinationPath)
     //sourceRDD.partitions.length = 2
     val sourceRDD = HandleFileUtils.getFilesFromSourceHadoop(sparkSession.sparkContext, qualifiedSourcePath.toUri, qualifiedDestinationPath.toUri,ParameterUtils.getNumTasks())
+    //    (hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data
+    //      ,CopyDefinitionWithDependencies(
+    //        SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
+    //        ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data,List()))
+    //    ,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
+    //      ,CopyDefinitionWithDependencies(
+    //        SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info.dat,14488255,File)
+    //        ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
+    //        ,List(
+    //            SingleCopyDefinition(
+    //                SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
+    //                ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data))))
+    //    ,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
+    //      ,CopyDefinitionWithDependencies(
+    //        SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info2.dat,14488255,File)
+    //        ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
+    //        ,List(
+    //            SingleCopyDefinition(
+    //                SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
+    //                ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data))))
+    LoggingUtils.log("Info","source rdd "+sourceRDD.map(x => x.toString).reduce((x,y) => x + "," + y))
     val destinationRDD = HandleFileUtils.getFilesFromDestinationHadoop(sparkSession.sparkContext, qualifiedDestinationPath)
-
+    //(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data
+    //   ,SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data,0,Directory))
+    //,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2
+    //   ,SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2,0,Directory))
+    //,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
+    //   ,SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat,14488255,File))
+    //,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
+    //   ,SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat,14488255,File))
+    LoggingUtils.log("Info","destination rdd "+destinationRDD.map(x => x.toString).reduce((x,y) => x + "," + y))
     LoggingUtils.log("Info","SparkDistCP tasks number : \n" + sourceRDD.partitions.length)
     val joined = sourceRDD.fullOuterJoin(destinationRDD)
-
+    //(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2
+    //   ,(None,Some(SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2,0,Directory))))
+    //,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data
+    //   ,(Some(
+    //       CopyDefinitionWithDependencies(
+    //           SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
+    //           ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data,List()))
+    //     ,Some(
+    //       SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data,0,Directory))))
+    //,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
+    //    ,(Some(
+    //        CopyDefinitionWithDependencies(
+    //            SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info.dat,14488255,File)
+    //            ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
+    //            ,List(
+    //                SingleCopyDefinition(
+    //                    SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
+    //                    ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data))))
+    //      ,Some(
+    //          SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat,14488255,File))))
+    //,(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
+    //      ,(Some(CopyDefinitionWithDependencies(
+    //          SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info2.dat,14488255,File)
+    //          ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
+    //          ,List(
+    //                SingleCopyDefinition(
+    //                    SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
+    //                    ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data))))
+    //       ,Some(SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat,14488255,File))))
+    LoggingUtils.log("Info","joined rdd "+joined.map(x => x.toString).reduce((x,y) => x + "," + y))
     val toCopy = joined.collect { case (_, (Some(s), _)) => s }
 
 
@@ -61,25 +119,7 @@ object SparkDistCP {
 
 
     val serConfig = new ConfigSerializableDeser(sourceRDD.sparkContext.hadoopConfiguration)
-    //    batchAndPartitionFiles(sourceRDD):
-    //    CopyDefinitionWithDependencies(
-    //          SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info.dat,14488255,File)
-    //          ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat
-    //          ,List(
-    //             SingleCopyDefinition(
-    //                SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
-    //                ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data)))
-    //       CopyDefinitionWithDependencies(
-    //           SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info2.dat,14488255,File)
-    //           ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat
-    //           ,List(
-    //               SingleCopyDefinition(
-    //                  SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
-    //                  ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data)))
-    //      CopyDefinitionWithDependencies(
-    //           SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory)
-    //          ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data
-    //          ,List()
+
     LoggingUtils.log("Info","do copy START ")
     var distcpresult = sourceRDD
       .mapPartitions {

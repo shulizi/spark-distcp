@@ -7,7 +7,7 @@ object ParameterUtils {
   var src:String = ""
   var dest:String= ""
   var ignoreErrors = false
-
+  var threadWhileListFiles = 1
   def getNumTasks(): Int ={
     numTasks
   }
@@ -19,6 +19,9 @@ object ParameterUtils {
   }
   def getIgnoreErrors():Boolean = {
     ignoreErrors
+  }
+  def getThreadWhileListFiles():Int = {
+    threadWhileListFiles
   }
 
   def fun_get_next_parameter(parameter_array:Array[String]):Unit={
@@ -58,8 +61,13 @@ object ParameterUtils {
         dest = parameter
         LoggingUtils.log("Info","get destination to copy: " + dest)
       }else if (parameter == "--ignoreErrors"){
-        LoggingUtils.log("Info","get parameter ignoreErrors ")
         ignoreErrors = true
+        LoggingUtils.log("Info","get parameter ignoreErrors ")
+      }else if (parameter == "--thread"){
+        fun_get_next_parameter(parameter_array)
+        threadWhileListFiles = parameter.toInt
+        LoggingUtils.log("Info","get parameter thread while list files :"+threadWhileListFiles)
+
       }
       fun_get_next_parameter(parameter_array)
     }

@@ -27,7 +27,7 @@ object HandleFileUtils  {
     var fileLister  =  new FileLister(fs,path)
     val exceptions = new java.util.concurrent.ConcurrentLinkedQueue[Exception]()
 
-    val pool = Executors.newFixedThreadPool(1)
+    val pool = Executors.newFixedThreadPool(ParameterUtils.getThreadWhileListFiles())
 
     LoggingUtils.log("Info",s"Scanning  [$path] for file list")
     val tasks: Seq[Future[Unit]] = List.fill(1)(fileLister).map(pool.submit).map(j => Future {
