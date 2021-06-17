@@ -84,7 +84,7 @@ object SparkDistCP {
     //          ,hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data
     //          ,List())
     LoggingUtils.log("Info","do copy START ")
-    var distcpresult = batchAndPartitionFiles(sourceRDD)
+    var distcpresult = sourceRDD
       .mapPartitions {
         iterator =>
           val hadoopConfiguration = serConfig.get()
@@ -92,7 +92,7 @@ object SparkDistCP {
           val fsCache = new FileSystemObjectCacher(hadoopConfiguration)
 
           iterator
-            .flatMap(_._2.getAllCopyDefinitions)
+            .flatMap(_.getAllCopyDefinitions)
             .collectMapWithEmptyCollection((d, z) => z.contains(d),
               d => {
                 val r = CopyUtils.handleCopy(fsCache.getOrCreate(d.source.uri), fsCache.getOrCreate(d.destination), d, attemptID)
@@ -120,55 +120,5 @@ object SparkDistCP {
   }
 
 
-  private[squadron] def batchAndPartitionFiles(rdd: RDD[CopyDefinitionWithDependencies]): RDD[((Int, Int), CopyDefinitionWithDependencies)] = {
-    //Spark RDD分区是并行计算的一个计算单元，RDD在逻辑上被分为多个分区，分区的格式决定了并行计算的粒度，任务的个数是是由最后一个RDD的的分区数决定的
-    //spark shuffle分为shuffle write和shuffle read阶段，一个partition对应一个reducer
-    // rdd.partitions.length == 2
-    val partitioner = rdd.partitioner.getOrElse(new HashPartitioner(rdd.partitions.length))
-    //将  /user/duli/data下面的所有文件：ip_info2.dat、ip_info.dat拷贝到/user/duli/data2目录下
-//    CopyDefinitionWithDependencies(
-//      SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory),
-//      hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data,List())
-//
-//   ,CopyDefinitionWithDependencies(
-//     SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info.dat,14488255,File),
-//     hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info.dat,
-//     List(
-//       SingleCopyDefinition(
-//         SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory),
-//         hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data)))
-//   ,CopyDefinitionWithDependencies(
-//     SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data/ip_info2.dat,14488255,File),
-//     hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data/ip_info2.dat,
-//     List(
-//       SingleCopyDefinition(
-//         SerializableFileStatus(hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data,0,Directory),
-//         hdfs://hadoop02.ebay.fudan.edu:8020/user/duli/data2/data)))
-    //repartitionAndSortWithinPartitions算子可以通过指定的分区器进行分组，并在分组内排序
-    val sorted = rdd.map(v => (v.source.uri.toString, v)).repartitionAndSortWithinPartitions(partitioner).map(_._2)
-    LoggingUtils.log("Info","sorted copy rdd :"+sorted.map(x => x.toString).reduce((x,y) => x + "," + y))
-    val batched = sorted.mapPartitionsWithIndex(generateBatchedFileKeys()) //sorted
-    var partitions = batched.partitionBy(CopyPartitioner(batched))
-    LoggingUtils.log("Info","partitions rdd "+partitions.map(x => x.toString).reduce((x,y) => x + "," + y))
-    partitions
-
-  }
-
-  private[squadron] def generateBatchedFileKeys(): (Int, Iterator[CopyDefinitionWithDependencies]) => Iterator[((Int, Int), CopyDefinitionWithDependencies)] = {
-    (partition, iterator) =>
-      iterator.scanLeft[(Int, Int, Long, CopyDefinitionWithDependencies)](0, 0, 0, null) {
-        case ((index, count, bytes, _), definition) =>
-          val newCount = count + 1
-          val newBytes = bytes + definition.source.getLen
-          if (newCount > 1000 || newBytes > 1073741824L) {
-            (index + 1, 1, definition.source.getLen, definition)
-          }
-          else {
-            (index, newCount, newBytes, definition)
-          }
-      }
-        .drop(1)
-        .map { case (index, _, _, file) => ((partition, index), file) }
-  }
 
 }
